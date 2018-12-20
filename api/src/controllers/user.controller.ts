@@ -8,8 +8,8 @@ const userController = {
       name: input.name,
       center: input.center,
       active: input.active,
-      sign_up_token: input.sign_up_token,
-      auth_token: input.auth_token,
+      signUpToken: input.sign_up_token,
+      authToken: input.auth_token,
       notifications: input.notifications
     });
     console.log('You signed up');

@@ -1,4 +1,5 @@
 import * as mongoose from 'mongoose';
+import { Int32 } from 'bson';
 
 const Schema = mongoose.Schema;
 
