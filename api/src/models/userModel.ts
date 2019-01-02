@@ -1,9 +1,19 @@
 import * as mongoose from 'mongoose';
-import { Int32 } from 'bson';
 
-const Schema = mongoose.Schema;
+import { Document, Schema, Model, model } from 'mongoose';
 
-const ContactSchema = new Schema({
+interface IUser extends Document{
+  email?: string;
+  password?: string;
+  name?: string;
+  center?: string;
+  active?: Boolean;
+  sign_up_token?: string;
+  auth_token?: string;
+  notifications?: Boolean;
+}
+
+export const ContactSchema: Schema = new Schema({
   id: Schema.Types.ObjectId,
 
   email: {
@@ -34,11 +44,13 @@ const ContactSchema = new Schema({
   },
 
   signUpToken: {
-    type: Number,
+    type: String,
+    default: 'aa',
   },
 
   authToken: {
-    type: Number,
+    type: String,
+    default: 'aa',
   },
 
   notifications: {
@@ -50,7 +62,7 @@ const ContactSchema = new Schema({
   },
 });
 
-
-var UserMong = mongoose.model('UserMongs', ContactSchema);
-//module.exports = UserMong;
-export {UserMong};
+export const UserMong: Model<IUser> = mongoose.model<IUser>(
+  'UserMongs',
+  ContactSchema,
+);
