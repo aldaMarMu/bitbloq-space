@@ -21,12 +21,25 @@ services:
       - type: bind
         source: ../bitbloq/packages/ui
         target: /opt/ui
+      - type: bind
+        source: ../bitbloq/packages/3d
+        target: /opt/3d
+      - type: bind
+        source: ../bitbloq/packages/lib3d
+        target: /opt/lib3d
       - /opt/frontend/node_modules/
+      - /opt/frontend/public/
+      - /opt/frontend/.cache/
+      - /opt/ui/node_modules/
+      - /opt/3d/node_modules/
+      - /opt/lib3d/node_modules/
     command: >
       bash -c "cd /opt/frontend
       && rm -Rf node_modules/@bitbloq
       && npm install
       && npm link ../ui
+      && npm link ../lib3d
+      && npm link ../3d
       && npm run develop"
 
   api:
