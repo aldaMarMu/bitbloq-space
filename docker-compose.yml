@@ -28,6 +28,7 @@ services:
         source: ../bitbloq/packages/lib3d
         target: /opt/lib3d
       - /opt/frontend/node_modules/
+      - /opt/frontend/public/
       - /opt/frontend/.cache/
       - /opt/ui/node_modules/
       - /opt/3d/node_modules/
