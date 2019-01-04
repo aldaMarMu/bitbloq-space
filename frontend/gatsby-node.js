@@ -9,3 +9,41 @@ exports.onCreatePage = async ({page, actions}) => {
   }
 };
 
+exports.onCreateWebpackConfig = ({ actions, loaders, getConfig, stage }) => {
+  const config = getConfig();
+
+  config.module.rules = [
+    ...config.module.rules.filter(
+      rule => String(rule.test) !== String(/\.jsx?$/)
+    ),
+
+    {
+      ...loaders.js(),
+      test: /\.jsx?$/,
+      exclude: modulePath =>
+        /node_modules/.test(modulePath) &&
+        !/node_modules\/\@bitbloq\/*/.test(modulePath),
+    },
+
+    {
+      type: 'javascript/auto',
+      test: /\.(json)$/,
+      include: [/src\/messages/],
+      use: ['file-loader'],
+    }
+  ];
+
+  if (stage === "build-html") {
+    config.module.rules.push({
+      test: /3d\/src\//,
+      use: ['null-loader']
+    });
+    config.module.rules.push({
+      test: /worker.ts$/,
+      use: ['null-loader']
+    });
+  }
+
+  actions.replaceWebpackConfig(config);
+};
+
