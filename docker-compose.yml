@@ -47,6 +47,7 @@ services:
     environment:
       - MONGO_URL=mongodb://mongodb/bitbloq_space
       - JWT_SECRET=supersecretpassword
+      - PORT=8000
     depends_on:
       - mongodb
     volumes:
