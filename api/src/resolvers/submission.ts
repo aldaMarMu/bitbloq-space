@@ -10,28 +10,27 @@ const submissionResolver = {
     async createSubmission(root: any, args: any, context: any) {
       const exFather = await ExerciseModel.findOne({
         code: args.exercise_code,
-        acceptSubmissions: true
+        acceptSubmissions: true,
       });
       console.log(args);
       console.log(exFather);
       if (!exFather)
-        throw new Error(
-          'Error creating submission, check your exercise code',
-        );
-      if(!exFather.acceptSubmissions){
-        throw new Error(
-          'This exercise doesnt accept submissions now',
-        );
-      };
+        throw new Error('Error creating submission, check your exercise code');
+      if (!exFather.acceptSubmissions) {
+        throw new Error('This exercise doesnt accept submissions now');
+      }
+      if (await SubmissionModel.findOne({ student_nick: args.student_nick })) {
+        throw new Error('This nick already exists, try another one');
+      }
       const submission_new = new SubmissionModel({
         id: ObjectId,
-        exercise_father: exFather._id,
+        exercise: exFather._id,
         student_nick: args.student_nick,
         content: exFather.content,
         teacher: exFather.user,
+        title: exFather.title,
       });
-      const newSub=await SubmissionModel.create(submission_new);
-      //const newSub=await SubmissionModelController.createSubmission(submissionNew);
+      const newSub = await SubmissionModel.create(submission_new);
       const token: String = jsonwebtoken.sign(
         {
           exercise_id: exFather._id,
@@ -43,28 +42,29 @@ const submissionResolver = {
       );
       await SubmissionModel.findOneAndUpdate(
         { _id: newSub._id },
-        { $set: {sub_token: token} },
+        { $set: { sub_token: token } },
         { new: true },
       );
-      //SubmissionModelController.updateSubmission(newSub._id, {sub_token: token})
-      return token;
+      return {
+        token: token,
+        submission_id: newSub._id,
+        exercise_id: exFather._id,
+      };
     },
+
     async updateSubmission(root: any, args: any, context: any) {
       if (!context.user.exercise_id)
         throw new AuthenticationError('You need to login with exercise code');
-
       const existSubmission = await SubmissionModel.findOne({
         _id: context.user.submission_id,
-        exercise_father: context.user.exercise_id,
+        exercise: context.user.exercise_id,
       });
       if (!existSubmission)
         throw new Error(
           'Error updating submission, it should part of one of your exercises',
         );
-      if(existSubmission.finished){
-        throw new Error(
-          'You already finished the exercise',
-        );
+      if (existSubmission.finished) {
+        throw new Error('You already finished the exercise');
       }
       if (existSubmission) {
         return SubmissionModel.findOneAndUpdate(
@@ -72,38 +72,33 @@ const submissionResolver = {
           { $set: args.input },
           { new: true },
         );
-
-        // return SubmissionModelController.updateSubmission(
-        //   existSubmission._id,
-        //   args.input,
-        // );
       } else {
         return new Error('Exercise doesnt exist');
       }
     },
+
     async finishSubmission(root: any, args: any, context: any) {
       if (!context.user.exercise_id)
-        throw new AuthenticationError('You need to be logged in with exercise code');
-
+        throw new AuthenticationError(
+          'You need to be logged in with exercise code',
+        );
       const existSubmission = await SubmissionModel.findOne({
         _id: context.user.submission_id,
-        exercise_father: context.user.exercise_id,
-      });        
-      if (!existSubmission){
-        throw new Error(
-          'Error finishing submission, it doesnt exist',
-        );}
-      
-      const exFather= await ExerciseModel.findOne({_id: existSubmission.exercise_father});
+        exercise: context.user.exercise_id,
+      });
+      if (!existSubmission) {
+        throw new Error('Error finishing submission, it doesnt exist');
+      }
+      const exFather = await ExerciseModel.findOne({
+        _id: existSubmission.exercise,
+      });
       //check if the exercise accepts submissions
-      if(!exFather.acceptSubmissions){
-        throw new Error(
-          'This exercise doesnt accept submissions now',
-        );
+      if (!exFather.acceptSubmissions) {
+        throw new Error('This exercise doesnt accept submissions now');
       }
       //check if the submission is in time
-      const timeNow: Date= new Date();
-      if(timeNow>(exFather.expireDate)){
+      const timeNow: Date = new Date();
+      if (timeNow > exFather.expireDate) {
         throw new Error('Your submission is late');
       }
       return SubmissionModel.findOneAndUpdate(
@@ -111,55 +106,56 @@ const submissionResolver = {
         { $set: { finished: true, comment: args.comment } },
         { new: true },
       );
-      //return SubmissionModelController.finishSubmission(existSubmission._id, args.comment);
     },
+
     async deleteSubmission(root: any, args: any, context: any) {
       if (!context.user.exercise_id)
-        throw new AuthenticationError('You need to be logged in with exercise code');
-
+        throw new AuthenticationError(
+          'You need to be logged in with exercise code',
+        );
       const existSubmission = await SubmissionModel.findOne({
         _id: context.user.submission_id,
-        exercise_father: context.user.exercise_id,
+        exercise: context.user.exercise_id,
       });
       if (!existSubmission)
         throw new Error(
           'Error updating submission, it should part of one of your exercises',
         );
-        return SubmissionModel.deleteOne({ _id: existSubmission._id });
-      //return SubmissionModelController.deleteSubmission(existSubmission._id);
+      return SubmissionModel.deleteOne({ _id: existSubmission._id });
     },
   },
+
   Query: {
     async submissionsByExercise(root: any, args: any, context: any) {
       if (!context.user.user_id)
-      throw new AuthenticationError('You need to be logged in. Only teachers');
+        throw new AuthenticationError(
+          'You need to be logged in. Only teachers',
+        );
       if (context.user.signUp)
         throw new Error('Problem with token, not auth token');
       const exerciseFound = await ExerciseModel.findOne({
-        _id: args.exercise_father,
+        _id: args.exercise,
       });
       if (!exerciseFound) throw new Error('exercise doesnt exist');
-      return SubmissionModel.find({ exercise_father:  exerciseFound._id });
-      // return SubmissionModelController.findSubmissionByExercise(
-      //   exerciseFound._id,
-      // );
+      return SubmissionModel.find({ exercise: exerciseFound._id });
     },
+
     async submissionByID(root: any, args: any, context: any) {
       if (!context.user.user_id)
-      throw new AuthenticationError('You need to be logged in. Only teachers');
+        throw new AuthenticationError(
+          'You need to be logged in. Only teachers',
+        );
       if (context.user.signUp)
         throw new Error('Problem with token, not auth token');
-      //const userFound = await UserModel.findOne({ email: context.user.email });
       return SubmissionModel.findOne({ _id: args.id });
-      //return SubmissionModelController.findSubmissionByID(args.id);
     },
+
     submissions(root: any, args: any, context: any) {
       if (!context.user.user_id)
         throw new AuthenticationError('You need to be logged in');
       if (context.user.signUp)
         throw new Error('Problem with token, not auth token');
       return SubmissionModel.find({});
-        //return SubmissionModelController.findAllSubmissions();
     },
   },
 };

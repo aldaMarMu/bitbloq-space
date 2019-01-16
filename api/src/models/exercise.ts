@@ -4,9 +4,10 @@ const timestamps = require('mongoose-timestamp');
 
 interface IExercise extends Document {
   user?: String;
-  document_father?: String;
+  document?: String;
   code?: String;
   title?: String;
+  type?: String;
   content?: String;
   acceptSubmissions?: Boolean;
   versions?: [String];
@@ -20,7 +21,7 @@ const ExerciseMongSchema: Schema = new Schema({
     ref: 'UserModel',
   },
 
-  document_father: {
+  document: {
     type: Schema.Types.ObjectId,
     ref: 'DocumentModel',
   },
@@ -35,6 +36,10 @@ const ExerciseMongSchema: Schema = new Schema({
     default: 'New Exercise',
   },
 
+  type: {
+    type: String,
+  },
+
   content: {
     type: String,
     trim: true,
@@ -43,7 +48,7 @@ const ExerciseMongSchema: Schema = new Schema({
 
   acceptSubmissions: {
     type: Boolean,
-    default: true
+    default: true,
   },
 
   versions: [

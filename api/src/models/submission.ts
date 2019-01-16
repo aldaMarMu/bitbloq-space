@@ -4,7 +4,7 @@ const timestamps = require('mongoose-timestamp');
 interface ISubmission extends Document {
   user?: String;
   title: String;
-  exercise_father?: String;
+  exercise?: String;
   student_nick?: String;
   content?: String;
   finished?: Boolean;
@@ -22,7 +22,7 @@ const SubmissionMongSchema: Schema = new Schema({
     default: 'New Submission',
   },
 
-  exercise_father: {
+  exercise: {
     type: Schema.Types.ObjectId,
     ref: 'ExerciseModel',
   },
@@ -38,9 +38,9 @@ const SubmissionMongSchema: Schema = new Schema({
     default: 'content',
   },
 
-  sub_token:{
+  sub_token: {
     type: String,
-    trim: true
+    trim: true,
   },
 
   finished: {
