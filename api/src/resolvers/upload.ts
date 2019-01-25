@@ -1,50 +1,67 @@
 import { UploadModel } from '../models/upload';
 const { Storage } = require('@google-cloud/storage');
+import { ObjectID } from 'bson';
+
 const storage = new Storage(process.env.GCLOUD_PROJECT_ID); //proyect ID
 const bucket = storage.bucket(process.env.GCLOUD_STORAGE_BUCKET); //bucket name
+const bucketName: String = process.env.GCLOUD_STORAGE_BUCKET;
 
-const processUpload = async upload => {
-  const { createReadStream, filename, mimetype } = await upload;
+let publicURL: String;
 
+const processUpload = async (createReadStream, filename, resolve, reject) => {
   const gcsname = Date.now() + filename;
   const file = bucket.file(gcsname);
-  //await storage.bucket(process.env.CLOUDSTORAGEBUCKET).upload(filename, opts);
-  //(se comentarían todos los stream);
+
   var opts = {
     metadata: {
       cacheControl: 'private, max-age=0, no-transform',
     },
   };
-  const stream = upload.createWriteStream(opts);
+  const fileStream = createReadStream();
+  const gStream = file.createWriteStream(opts);
 
-  stream.on('error', function(err) {
-    throw new Error('Error uploading image');
-  });
+  gStream
+    .on('error', err => {
+      reject('KO');
+      throw new Error('Error uploading image');
+    })
 
-  stream.on('finish', () => {
-    file.makePublic().then(() => {
-      return 'Finished upload';
+    .on('finish', async err => {
+      if (err) throw new Error('Error uploading file');
+      file.makePublic().then(() => {
+        publicURL = getPublicUrl(gcsname);
+        resolve('OK');
+      });
     });
-  });
 
-  stream.end(upload.buffer);
-
-  console.log(`${filename} uploaded.`);
+  fileStream.pipe(gStream);
 };
+
+function getPublicUrl(filename) {
+  return `https://storage.googleapis.com/${bucketName}/${filename}`;
+}
 
 const uploadResolver = {
   Query: {
     uploads: () => UploadModel.find({}),
   },
   Mutation: {
-    async singleUpload(parent, { file }) {
-      const { stream, filename, mimetype, encoding } = await file;
+    singleUpload: async (file, documentID) => {
+      const { createReadStream, filename, mimetype, encoding } = await file;
 
-      await processUpload(file);
+      await new Promise((resolve, reject) =>
+        processUpload(createReadStream, filename, resolve, reject),
+      );
 
-      UploadModel.create(file);
-
-      return { filename, mimetype, encoding };
+      const uploadNew = new UploadModel({
+        id: ObjectID,
+        document: documentID,
+        filename: filename,
+        mimetype: mimetype,
+        encoding: encoding,
+        publicURL: publicURL,
+      });
+      return UploadModel.create(uploadNew);
     },
   },
 };
