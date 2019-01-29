@@ -48,13 +48,18 @@ services:
       - MONGO_URL=mongodb://mongodb/bitbloq_space
       - JWT_SECRET=supersecretpassword
       - PORT=8000
+      - GOOGLE_APPLICATION_CREDENTIALS=/google-application-credentials.json
     depends_on:
       - mongodb
     volumes:
       - type: bind
         source: ./api
         target: /opt/api
+      - type: bind
+        source: "${GOOGLE_APPLICATION_CREDENTIALS}"
+        target: /google-application-credentials.json
       - /opt/api/node_modules/
+      - /opt/api/.cache/
     command: >
       bash -c "cd /opt/api
       && npm install
