@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 import exSchema from './schemas/allSchemas';
-
 import * as mongoose from 'mongoose';
 import { contextController } from './controllers/context';
 const Koa = require('koa');
@@ -24,11 +23,9 @@ mongoose.connect(
 );
 
 const server = new ApolloServer({
-  //context: async ({ctx})=> {return {ctx};},
-  context: async ({ ctx}) => {
+  context: async ({ ctx }) => {
     const user = await contextController.getMyUser(ctx);
-    // add the user to the ctx
-    return { user };
+    return { user }; // add the user to the ctx
   },
   schema: exSchema,
   upload: {
