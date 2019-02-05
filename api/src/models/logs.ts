@@ -1,5 +1,13 @@
-import * as mongoose from "mongoose";
-const Schema = mongoose.Schema;
+import { Document, Model, model, Schema  } from "mongoose";
+const timestamps = require("mongoose-timestamp");
+
+interface ILogs extends Document {
+  user?: string,
+  object?: string,
+  action?: string,
+  operatingSystem?: string;
+  data?: string,
+}
 
 const LogsSchema = new Schema({
   user: {
@@ -7,8 +15,13 @@ const LogsSchema = new Schema({
     ref: "User",
   },
 
+  object: {
+    id: Schema.Types.ObjectId,
+    ref: "Object",
+  },
+
   action: {
-    type: JSON,
+    type: String,
   },
 
   date: {
@@ -16,11 +29,17 @@ const LogsSchema = new Schema({
     default: Date.now(),
   },
 
+  operatingSystem: {
+    type: String,
+  },
+
   data: {
-    type: JSON,
+    type: String,
   },
 });
 
-const Logs = mongoose.model("Logs", LogsSchema);
-module.exports = Logs;
-export default Logs;
+LogsSchema.plugin(timestamps);
+export const LogModels: Model<ILogs> = model<ILogs>(
+  "LogModels",
+  LogsSchema,
+);
