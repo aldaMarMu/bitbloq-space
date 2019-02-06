@@ -1,10 +1,10 @@
-import { ApolloError } from "apollo-server-koa";
-import { ObjectId } from "bson";
-import { DocumentModel } from "../models/document";
-import { ExerciseModel } from "../models/exercise";
-import { SubmissionModel } from "../models/submission";
-import { UploadModel } from "../models/upload";
-import uploadResolver from "./upload";
+import { ApolloError } from 'apollo-server-koa';
+import { ObjectId } from 'bson';
+import { DocumentModel } from '../models/document';
+import { ExerciseModel } from '../models/exercise';
+import { SubmissionModel } from '../models/submission';
+import { UploadModel } from '../models/upload';
+import uploadResolver from './upload';
 
 const documentResolver = {
   Mutation: {
@@ -60,8 +60,8 @@ const documentResolver = {
         return DocumentModel.deleteOne({ _id: args.id }); // delete all the document dependencies
       } else {
         throw new ApolloError(
-          "You only can delete your documents",
-          "DOCUMENT_NOT_FOUND",
+          'You only can delete your documents',
+          'DOCUMENT_NOT_FOUND',
         );
       }
     },
@@ -117,7 +117,7 @@ const documentResolver = {
           );
         }
       } else {
-        return new ApolloError("Document does not exist", "DOCUMENT_NOT_FOUND");
+        return new ApolloError('Document does not exist', 'DOCUMENT_NOT_FOUND');
       }
     },
   },
@@ -138,12 +138,12 @@ const documentResolver = {
         _id: args.id,
       });
       if (!existDocument) {
-        throw new ApolloError("Document does not exist", "DOCUMENT_NOT_FOUND");
+        throw new ApolloError('Document does not exist', 'DOCUMENT_NOT_FOUND');
       }
       if (existDocument.user !== context.user.userID) {
         throw new ApolloError(
-          "This ID does not belong to one of your documents",
-          "NOT_YOUR_DOCUMENT",
+          'This ID does not belong to one of your documents',
+          'NOT_YOUR_DOCUMENT',
         );
       }
       return existDocument;
@@ -151,8 +151,8 @@ const documentResolver = {
   },
 
   Document: {
-    exercises: async (document) => ExerciseModel.find({ document: document._id }),
-    images: async (document) => UploadModel.find({ document: document._id }),
+    exercises: async document => ExerciseModel.find({ document: document._id }),
+    images: async document => UploadModel.find({ document: document._id }),
   },
 };
 

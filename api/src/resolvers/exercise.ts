@@ -1,9 +1,9 @@
-import { ApolloError } from "apollo-server-koa";
-import { ObjectId } from "bson";
-import { DocumentModel } from "../models/document";
-import { ExerciseModel } from "../models/exercise";
-import { SubmissionModel } from "../models/submission";
-import { UserModel } from "../models/user";
+import { ApolloError } from 'apollo-server-koa';
+import { ObjectId } from 'bson';
+import { DocumentModel } from '../models/document';
+import { ExerciseModel } from '../models/exercise';
+import { SubmissionModel } from '../models/submission';
+import { UserModel } from '../models/user';
 
 const exerciseResolver = {
   Mutation: {
@@ -17,10 +17,10 @@ const exerciseResolver = {
         _id: args.input.document,
         user: context.user.userID,
       });
-      if (!docFather){
+      if (!docFather) {
         throw new ApolloError(
-          "Error creating exercise, it should part of one of your documents",
-          "DOCUMENT_NOT_FOUND",
+          'Error creating exercise, it should part of one of your documents',
+          'DOCUMENT_NOT_FOUND',
         );
       }
       const user = await UserModel.findById(context.user.userID);
@@ -54,7 +54,7 @@ const exerciseResolver = {
         user: context.user.userID,
       });
       if (!existExercise) {
-        return new ApolloError("Exercise does not exist", "EXERCISE_NOT_FOUND");
+        return new ApolloError('Exercise does not exist', 'EXERCISE_NOT_FOUND');
       }
       return ExerciseModel.findOneAndUpdate(
         { _id: existExercise._id },
@@ -78,7 +78,7 @@ const exerciseResolver = {
         await SubmissionModel.deleteMany({ exercise: existExercise._id });
         return ExerciseModel.deleteOne({ _id: args.id }); // delete all the exercise dependencies
       } else {
-        return new ApolloError("Exercise does not exist", "EXERCISE_NOT_FOUND");
+        return new ApolloError('Exercise does not exist', 'EXERCISE_NOT_FOUND');
       }
     },
 
@@ -99,13 +99,12 @@ const exerciseResolver = {
           { new: true },
         );
       } else {
-        return new ApolloError("Exercise does not exist", "EXERCISE_NOT_FOUND");
+        return new ApolloError('Exercise does not exist', 'EXERCISE_NOT_FOUND');
       }
     },
   },
 
   Query: {
-
     /**
      * Exercises: returns all the exercises of the user logged.
      * args: nothing.
@@ -122,10 +121,10 @@ const exerciseResolver = {
     exercise: async (root: any, args: any, context: any) => {
       if (context.user.exerciseID) {
         //  Token de alumno
-        if (context.user.exerciseID !== args.id){
+        if (context.user.exerciseID !== args.id) {
           throw new ApolloError(
-            "You only can ask for your token exercise",
-            "NOT_YOUR_EXERCISE",
+            'You only can ask for your token exercise',
+            'NOT_YOUR_EXERCISE',
           );
         }
         const existExercise = await ExerciseModel.findOne({
@@ -133,8 +132,8 @@ const exerciseResolver = {
         });
         if (!existExercise) {
           throw new ApolloError(
-            "Exercise does not exist",
-            "EXERCISE_NOT_FOUND",
+            'Exercise does not exist',
+            'EXERCISE_NOT_FOUND',
           );
         }
         return existExercise;
@@ -146,8 +145,8 @@ const exerciseResolver = {
         });
         if (!existExercise) {
           throw new ApolloError(
-            "Exercise does not exist",
-            "EXERCISE_NOT_FOUND",
+            'Exercise does not exist',
+            'EXERCISE_NOT_FOUND',
           );
         }
         return existExercise;
@@ -164,7 +163,7 @@ const exerciseResolver = {
         user: context.user.userID,
       });
       if (!docFather) {
-        throw new ApolloError("document does not exist", "DOCUMENT_NOT_FOUND");
+        throw new ApolloError('document does not exist', 'DOCUMENT_NOT_FOUND');
       }
       const existExercise = await ExerciseModel.find({
         document: docFather._id,
@@ -175,7 +174,7 @@ const exerciseResolver = {
   },
 
   Exercise: {
-    submissions: async (exercise) =>
+    submissions: async exercise =>
       SubmissionModel.find({ exercise: exercise._id }),
   },
 };
