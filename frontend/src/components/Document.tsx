@@ -1,11 +1,12 @@
 import * as React from "react";
-import { Query, Mutation } from "react-apollo";
+import { Query, Mutation, Subscription } from "react-apollo";
 import {
   colors,
   Button,
   HorizontalRule,
   Icon,
   Input,
+  Spinner,
   Modal
 } from "@bitbloq/ui";
 import styled from "@emotion/styled";
@@ -51,8 +52,16 @@ const CREATE_EXERCISE_MUTATION = gql`
 `;
 
 const DELETE_SUBMISSION_MUTATION = gql`
-  mutation DeleteSubmission($id: String!) {
+  mutation DeleteSubmission($id: ObjectID!) {
     deleteSubmission(submissionID: $id) {
+      id
+    }
+  }
+`;
+
+const SUBMISSION_UPDATED_SUBSCRIPTION = gql`
+  subscription OnSubmisisonUpdated($exercise: ObjectID!) {
+    submissionUpdated(exercise: $exercise) {
       id
     }
   }
@@ -98,7 +107,7 @@ class Document extends React.Component<any, DocumentState> {
             <Button
               tertiary
               onClick={() =>
-                navigate(`/app/document/${document.type}/${document.id}`)
+                window.open(`/app/document/${document.type}/${document.id}`)
               }
             >
               Editar documento
@@ -120,41 +129,56 @@ class Document extends React.Component<any, DocumentState> {
     );
   }
 
-  renderExercises(exercises) {
+  renderExercise = (exercise, refetch) => {
     const { id: documentId } = this.props;
 
     return (
-      <Mutation mutation={DELETE_SUBMISSION_MUTATION}>
-        {deleteSubmission => (
-          <Exercises>
-            {exercises && exercises.length > 0 && <h2>Ejercicios creados</h2>}
-            {exercises
-              .slice()
-              .sort(sortByCreatedAt)
-              .map(exercise => (
-                <ExercisePanel
-                  exercise={exercise}
-                  key={exercise.id}
-                  onCancelSubmission={submission =>
-                    deleteSubmission({
-                      variables: { id: submission.id },
-                      refetchQueries: [
-                        { query: DOCUMENT_QUERY, variables: { id: documentId } }
-                      ]
-                    })
-                  }
-                  onCheckSubmission={({ type, id }) =>
-                    window.open(`/app/submission/${type}/${id}`)
-                  }
-                />
-              ))}
-          </Exercises>
-        )}
-      </Mutation>
+      <React.Fragment key={exercise.id}>
+        <Mutation mutation={DELETE_SUBMISSION_MUTATION}>
+          {deleteSubmission => (
+            <ExercisePanel
+              exercise={exercise}
+              onCancelSubmission={submission =>
+                deleteSubmission({
+                  variables: { id: submission.id },
+                  refetchQueries: [
+                    { query: DOCUMENT_QUERY, variables: { id: documentId } }
+                  ]
+                })
+              }
+              onCheckSubmission={({ type, id }) =>
+                window.open(`/app/submission/${type}/${id}`)
+              }
+            />
+          )}
+        </Mutation>
+        <Subscription
+          subscription={SUBMISSION_UPDATED_SUBSCRIPTION}
+          variables={{ exercise: exercise.id }}
+          shouldResubscribe={true}
+          onSubscriptionData={() => {
+            refetch();
+          }}
+        />
+      </React.Fragment>
+    );
+  }
+
+  renderExercises(exercises, refetch) {
+    return (
+      <Exercises>
+        {exercises && exercises.length > 0 && <h2>Ejercicios creados</h2>}
+        {exercises
+          .slice()
+          .sort(sortByCreatedAt)
+          .map(exercise => this.renderExercise(exercise, refetch))
+        }
+      </Exercises>
     );
   }
 
   renderCreateExerciseModal(document) {
+    const { id: documentId } = this.props;
     const { isCreateExerciseOpen, newExerciseTitle } = this.state;
 
     return (
@@ -180,13 +204,13 @@ class Document extends React.Component<any, DocumentState> {
                     onClick={() => {
                       createExercise({
                         variables: {
-                          documentId: document.id,
+                          documentId,
                           title: newExerciseTitle
                         },
                         refetchQueries: [
                           {
                             query: DOCUMENT_QUERY,
-                            variables: { id: document.id }
+                            variables: { id: documentId }
                           }
                         ]
                       });
@@ -214,27 +238,27 @@ class Document extends React.Component<any, DocumentState> {
     const { id } = this.props;
 
     return (
-      <Query query={DOCUMENT_QUERY} variables={{ id }}>
-        {({ loading, error, data }) => {
-          if (loading) return <p>Loading...</p>;
-          if (error) return <p>Error :(</p>;
+      <Container>
+        <AppHeader />
+        <Query query={DOCUMENT_QUERY} variables={{ id }}>
+          {({ loading, error, data, refetch }) => {
+            if (loading) return <Loading />;
+            if (error) return <p>Error :(</p>;
 
-          const { document } = data;
+            const { document } = data;
 
-          return (
-            <Container>
-              <AppHeader />
+            return (
               <Content>
                 {this.renderHeader(document)}
                 <Rule />
                 {this.renderDocumentInfo(document)}
-                {this.renderExercises(document.exercises)}
+                {this.renderExercises(document.exercises, refetch)}
               </Content>
-              {this.renderCreateExerciseModal(document)}
-            </Container>
-          );
-        }}
-      </Query>
+            );
+          }}
+        </Query>
+        {this.renderCreateExerciseModal(document)}
+      </Container>
     );
   }
 }
@@ -275,6 +299,10 @@ const Header = styled.div`
     text-decoration: none;
     margin-right: 6px;
   }
+`;
+
+const Loading = styled(Spinner)`
+  flex: 1;
 `;
 
 const Rule = styled(HorizontalRule)`

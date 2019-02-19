@@ -1,10 +1,19 @@
 import * as React from "react";
 import styled from "@emotion/styled";
-import { colors, Button, Select, Input, HorizontalRule } from "@bitbloq/ui";
+import {
+  colors,
+  Icon,
+  DialogModal,
+  DropDown,
+  Select,
+  Spinner,
+  Input,
+  HorizontalRule
+} from "@bitbloq/ui";
 import { navigate } from "gatsby";
-import { Query, Mutation } from "react-apollo";
+import { Query, Mutation, Subscription } from "react-apollo";
 import gql from "graphql-tag";
-import { supportedDocumentTypes } from "../config";
+import { documentTypes } from "../config";
 import AppHeader from "./AppHeader";
 import DocumentTypeTag from "./DocumentTypeTag";
 import { sortByCreatedAt, sortByTitle } from "../util";
@@ -22,10 +31,40 @@ const DOCUMENTS_QUERY = gql`
 `;
 
 const CREATE_DOCUMENT_MUTATION = gql`
-  mutation CreateDocument($type: String!, $title: String!) {
-    createDocument(input: { type: $type, title: $title }) {
+  mutation CreateDocument(
+    $type: String!
+    $title: String!
+    $description: String
+    $content: String
+    $image: String
+  ) {
+    createDocument(
+      input: {
+        type: $type
+        title: $title
+        description: $description
+        content: $content
+        imageUrl: $image
+      }
+    ) {
       id
       type
+    }
+  }
+`;
+
+const DELETE_DOCUMENT_MUTATION = gql`
+  mutation DeleteDocument($id: ObjectID!) {
+    deleteDocument(id: $id) {
+      id
+    }
+  }
+`;
+
+const DOCUMENT_UPDATED_SUBSCRIPTION = gql`
+  subscription OnDocumentUpdated {
+    documentUpdated {
+      id
     }
   }
 `;
@@ -54,20 +93,20 @@ const orderFunctions = {
 class DocumentsState {
   readonly order: string = OrderType.Creation;
   readonly searchText: string = "";
+  readonly deleteDocumentId: string | null = "";
 }
 
 class Documents extends React.Component<any, DocumentsState> {
   readonly state = new DocumentsState();
 
+  private openFile = React.createRef<HTMLInputElement>();
+
   onDocumentClick = ({ id, type }) => {
     navigate(`/app/document/${id}`);
   };
 
-  onNewDocument(createDocument, type, title) {
-    createDocument({
-      variables: { type, title },
-      refetchQueries: [{ query: DOCUMENTS_QUERY }]
-    });
+  onNewDocument(type, title) {
+    window.open(`/app/document/${type}/new`);
   }
 
   onDocumentCreated = ({ createDocument: { id, type } }) => {
@@ -78,43 +117,96 @@ class Documents extends React.Component<any, DocumentsState> {
     this.setState({ order });
   };
 
+  onOpenDocumentClick = () => {
+    this.openFile.current.click();
+  };
+
+  onDocumentDeleteClick = (e, document) => {
+    e.stopPropagation();
+    this.setState({ deleteDocumentId: document.id });
+  };
+
+  onDeleteDocument = () => {
+    const { deleteDocumentId } = this.state;
+    const { deleteDocument } = this.props;
+    deleteDocument(deleteDocumentId);
+    this.setState({ deleteDocumentId: null });
+  };
+
+  onFileSelected = (file, createDocument) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const document = JSON.parse(reader.result as string);
+      createDocument({
+        variables: { ...document },
+        refetchQueries: [{ query: DOCUMENTS_QUERY }]
+      });
+    };
+
+    reader.readAsText(file);
+  };
+
   renderHeader() {
     return (
       <Header>
         <h1>Mis Documentos</h1>
         <div>
-          <Mutation
-            mutation={CREATE_DOCUMENT_MUTATION}
-            onCompleted={this.onDocumentCreated}
+          <DropDown
+            attachmentPosition={"top center"}
+            targetPosition={"bottom center"}
           >
-            {createDocument => (
-              <Button
-                onClick={() =>
-                  this.onNewDocument(createDocument, "3d", "Nuevo documento")
-                }
-              >
+            {isOpen => (
+              <NewDocumentButton isOpen={isOpen}>
+                <Icon name="new-document" />
                 Nuevo documento
-              </Button>
+              </NewDocumentButton>
             )}
-          </Mutation>
+            <NewDocumentDropDown>
+              <NewDocumentOptions>
+                {Object.keys(documentTypes).map(type => (
+                  <NewDocumentOption
+                    key={type}
+                    comingSoon={!documentTypes[type].supported}
+                    color={documentTypes[type].color}
+                    onClick={() =>
+                      documentTypes[type].supported &&
+                      this.onNewDocument(type, "Nuevo documento")
+                    }
+                  >
+                    <NewDocumentOptionIcon>+</NewDocumentOptionIcon>
+                    <NewDocumentLabel>
+                      {documentTypes[type].label}
+                      {!documentTypes[type].supported && (
+                        <ComingSoon>Proximamente</ComingSoon>
+                      )}
+                    </NewDocumentLabel>
+                  </NewDocumentOption>
+                ))}
+              </NewDocumentOptions>
+              <OpenDocumentButton onClick={this.onOpenDocumentClick}>
+                <Icon name="new-document" />
+                Abrir documento
+              </OpenDocumentButton>
+            </NewDocumentDropDown>
+          </DropDown>
         </div>
       </Header>
     );
   }
 
   render() {
-    const { order, searchText } = this.state;
+    const { order, searchText, deleteDocumentId } = this.state;
     const orderFunction = orderFunctions[order];
 
     return (
-      <Query query={DOCUMENTS_QUERY}>
-        {({ loading, error, data }) => {
-          if (loading) return <p>Loading...</p>;
-          if (error) return <p>Error :(</p>;
+      <Container>
+        <AppHeader />
+        <Query query={DOCUMENTS_QUERY}>
+          {({ loading, error, data, refetch }) => {
+            if (loading) return <Loading />;
+            if (error) return <p>Error :(</p>;
 
-          return (
-            <Container>
-              <AppHeader />
+            return (
               <Content>
                 {this.renderHeader()}
                 <Rule />
@@ -138,12 +230,17 @@ class Documents extends React.Component<any, DocumentsState> {
                   {data.documents
                     .slice()
                     .sort(orderFunction)
-                    .filter(d => supportedDocumentTypes.includes(d.type))
+                    .filter(
+                      d =>
+                        documentTypes[d.type] && documentTypes[d.type].supported
+                    )
                     .filter(
                       d =>
                         !searchText ||
                         (d.title &&
-                          d.title.toLowerCase().indexOf(searchText) >= 0)
+                          d.title
+                            .toLowerCase()
+                            .indexOf(searchText.toLowerCase()) >= 0)
                     )
                     .map(document => (
                       <DocumentCard
@@ -155,19 +252,71 @@ class Documents extends React.Component<any, DocumentsState> {
                           <DocumentTypeTag small document={document} />
                           <DocumentTitle>{document.title}</DocumentTitle>
                         </DocumentInfo>
+                        <DeleteDocument
+                          onClick={e => this.onDocumentDeleteClick(e, document)}
+                        >
+                          <Icon name="trash" />
+                        </DeleteDocument>
                       </DocumentCard>
                     ))}
                 </DocumentList>
+                <Subscription
+                  subscription={DOCUMENT_UPDATED_SUBSCRIPTION}
+                  shouldResubscribe={true}
+                  onSubscriptionData={() => {
+                    refetch();
+                  }}
+                />
               </Content>
-            </Container>
-          );
-        }}
-      </Query>
+            );
+          }}
+        </Query>
+        <DialogModal
+          isOpen={deleteDocumentId}
+          title="Eliminar"
+          text="¿Seguro que quieres eliminar este documento?"
+          okText="Aceptar"
+          cancelText="Cancelar"
+          onOk={this.onDeleteDocument}
+          onCancel={() => this.setState({ deleteDocumentId: null })}
+        />
+        <Mutation
+          mutation={CREATE_DOCUMENT_MUTATION}
+          onCompleted={this.onDocumentCreated}
+        >
+          {createDocument => (
+            <input
+              ref={this.openFile}
+              type="file"
+              onChange={e =>
+                this.onFileSelected(e.target.files[0], createDocument)
+              }
+              style={{ display: "none" }}
+            />
+          )}
+        </Mutation>
+      </Container>
     );
   }
 }
 
-export default Documents;
+const DocumentsWithDelete = props => (
+  <Mutation mutation={DELETE_DOCUMENT_MUTATION}>
+    {mutate => (
+      <Documents
+        {...props}
+        deleteDocument={id =>
+          mutate({
+            variables: { id },
+            refetchQueries: [{ query: DOCUMENTS_QUERY }]
+          })
+        }
+      />
+    )}
+  </Mutation>
+);
+
+export default DocumentsWithDelete;
 
 /* styled components */
 
@@ -195,6 +344,10 @@ const Header = styled.div`
     font-weight: bold;
     font-size: 24px;
   }
+`;
+
+const Loading = styled(Spinner)`
+  flex: 1;
 `;
 
 const Rule = styled(HorizontalRule)`
@@ -226,6 +379,7 @@ const DocumentList = styled.div`
   grid-auto-rows: 1fr;
   grid-column-gap: 40px;
   grid-row-gap: 40px;
+  margin-bottom: 60px;
 
   &::before {
     content: "";
@@ -241,6 +395,25 @@ const DocumentList = styled.div`
   }
 `;
 
+const DeleteDocument = styled.div`
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1px solid ${colors.gray3};
+  background-color: white;
+  display: none;
+
+  &:hover {
+    background-color: ${colors.gray1};
+    border-color: ${colors.gray4};
+  }
+`;
+
 const DocumentCard = styled.div`
   display: flex;
   flex-direction: column;
@@ -249,6 +422,14 @@ const DocumentCard = styled.div`
   cursor: pointer;
   background-color: white;
   overflow: hidden;
+  position: relative;
+
+  &:hover {
+    border-color: ${colors.gray4};
+    ${DeleteDocument} {
+      display: flex;
+    }
+  }
 `;
 
 interface DocumentImageProps {
@@ -288,4 +469,134 @@ const DocumentType = styled.div<DocumentTypeProps>`
 const DocumentTitle = styled.div`
   margin-top: 10px;
   font-size: 16px;
+`;
+
+interface NewDocumentButtonProps {
+  isOpen: boolean;
+}
+const NewDocumentButton = styled.div<NewDocumentButtonProps>`
+  border: 1px solid ${colors.gray3};
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0px 20px;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  cursor: pointer;
+  background-color: ${props => (props.isOpen ? colors.gray2 : "white")};
+
+  &:hover {
+    background-color: ${colors.gray2};
+  }
+
+  svg {
+    height: 20px;
+    margin-right: 8px;
+  }
+`;
+
+const NewDocumentDropDown = styled.div`
+  margin-top: 8px;
+  background-color: white;
+  border-radius: 4px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  padding: 10px;
+
+  &::before {
+    content: "";
+    background-color: white;
+    width: 20px;
+    height: 20px;
+    display: block;
+    position: absolute;
+    transform: translate(-50%, 0) rotate(45deg);
+    top: -10px;
+    left: 50%;
+  }
+`;
+
+const NewDocumentOptions = styled.div`
+  padding: 10px 10px 0px 10px;
+  border-bottom: 1px solid ${colors.gray3};
+`;
+
+const NewDocumentOptionIcon = styled.div`
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+`;
+
+interface NewDocumentOptionProps {
+  comingSoon: boolean;
+  color: string;
+}
+
+const ComingSoon = styled.div`
+  margin-top: 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: ${colors.gray3};
+`;
+
+const NewDocumentOption = styled.div<NewDocumentOptionProps>`
+  cursor: pointer;
+  display: flex;
+  margin-bottom: 10px;
+  align-items: center;
+  font-size: 14px;
+  position: relative;
+  border-radius: 4px;
+
+  ${NewDocumentOptionIcon} {
+    background-color: ${props => props.color};
+  }
+
+  &:hover {
+    background-color: ${props => props.color};
+    color: white;
+  }
+
+  &:hover ${ComingSoon} {
+    position: absolute;
+    top: -4px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    border-radius: 4px;
+    background-color: ${colors.black};
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+`;
+
+const NewDocumentLabel = styled.div`
+  font-weight: 500;
+`;
+
+const OpenDocumentButton = styled.div`
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  margin: 10px;
+  background-color: ${colors.gray3};
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0px 10px;
+  height: 40px;
+  border-radius: 4px;
+
+  svg {
+    height: 20px;
+    width: 20px;
+    margin-right: 10px;
+  }
 `;
