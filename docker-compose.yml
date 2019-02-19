@@ -35,11 +35,14 @@ services:
       - /opt/lib3d/node_modules/
     command: >
       bash -c "cd /opt/frontend
-      && rm -Rf node_modules/@bitbloq
       && npm install
-      && npm link ../ui
-      && npm link ../lib3d
       && npm link ../3d
+      && npm link ../lib3d
+      && npm link ../ui
+      && cd /opt/3d
+      && npm link ../lib3d
+      && npm link ../ui
+      && cd /opt/frontend
       && npm run develop"
 
   api:
