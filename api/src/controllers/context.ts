@@ -3,9 +3,18 @@ const jsonwebtoken = require('jsonwebtoken');
 
 const contextController = {
   getMyUser: async context => {
-    const token1 = context.headers.authorization || '';
-    const justToken = token1.split(' ')[1];
-
+    let token1: string;
+    let justToken: string;
+    if(context.headers){ //authorization for queries and mutations
+      token1 = context.headers.authorization || '' ;
+      justToken = token1.split(' ')[1];
+    }else if(context.authorization){ //authorization for subscriptions
+      token1 = context.authorization || '' ;
+      justToken = token1.split(' ')[1];
+    }else{
+      token1='';
+      justToken='';
+    }
     if (justToken) {
       try {
         return await jsonwebtoken.verify(justToken, process.env.JWT_SECRET);
