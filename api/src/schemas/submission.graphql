@@ -13,13 +13,13 @@ enum Role {
 
 type Query {
   submissions: [Submission]                                 @authRequired(requires: [USER])
-  submission(id: ObjectID!): Submission                     @authRequired(requires: [EPHEMERAL, USER])
+  submission(id: ObjectID): Submission                      @authRequired(requires: [EPHEMERAL, USER])
   submissionsByExercise(exercise: ObjectID!): [Submission]  @authRequired(requires: [USER])
 }
 type Mutation {
-  createSubmission(exerciseCode: String!, studentNick: String!): createOut
+  loginSubmission(exerciseCode: String!, studentNick: String!, password: String!): loginOut
   updateSubmission(input: SubmissionIn): Submission                                           @authRequired(requires: [EPHEMERAL])
-  finishSubmission(content: String, studentComment: String): Submission                       @authRequired(requires: [EPHEMERAL])
+  finishSubmission(content: String, geometries: String, studentComment: String): Submission   @authRequired(requires: [EPHEMERAL])
   cancelSubmission: Submission                                                                @authRequired(requires: [EPHEMERAL])
   deleteSubmission(submissionID: ObjectID!): Submission                                       @authRequired(requires: [USER])
   gradeSubmission(submissionID: ObjectID, grade: Float, teacherComment: String): Submission   @authRequired(requires: [USER])
@@ -35,7 +35,9 @@ type Submission {
   user: ObjectID
   document: ObjectID
   studentNick: String
+  password: String
   content: String
+  geometries: String
   submissionToken: String
   finished: Boolean
   studentComment: String
@@ -53,11 +55,11 @@ input SubmissionIn {
   studentComment: String
   studentNick: String
   content: String
+  geometries: String
   type: String
 }
-type createOut {
+type loginOut {
   token: String
+  exerciseID: String
   type: String
-  submissionID: ObjectID
-  exerciseID: ObjectID
 }
