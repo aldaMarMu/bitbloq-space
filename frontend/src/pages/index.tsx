@@ -172,7 +172,7 @@ class IndexPage extends React.Component<IndexPageProps, IndexPageState> {
           <Step>
             <img src={studentStep2Image} />
             <p>
-              2. Inserta el código en el formulario de la derecha y escribe el
+              2. Inserta el código de ejercicio en el formulario de la derecha y escribe el
               nombre de acceso que quieras usar y una contraseña (opcional).
               Recuérdalos para continuar el ejercicio otro día.
             </p>
@@ -186,12 +186,6 @@ class IndexPage extends React.Component<IndexPageProps, IndexPageState> {
           {(loginSubmission, { loading, error }) => (
             <LoginForm>
               <div>
-                <Input
-                  error={!loading && error}
-                  value={studentNick}
-                  onChange={e => this.setState({ studentNick: e.target.value })}
-                  placeholder="Nombre de acceso"
-                />
                 <CodeInput
                   error={!loading && error}
                   value={exerciseCode}
@@ -199,6 +193,12 @@ class IndexPage extends React.Component<IndexPageProps, IndexPageState> {
                     this.setState({ exerciseCode: e.target.value })
                   }
                   placeholder="Código de ejercicio"
+                />
+                <Input
+                  error={!loading && error}
+                  value={studentNick}
+                  onChange={e => this.setState({ studentNick: e.target.value })}
+                  placeholder="Nombre de acceso"
                 />
                 <Input
                   error={!loading && error}
