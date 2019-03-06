@@ -41,7 +41,7 @@ const documentResolver = {
           args.input.folder ||
           (await UserModel.findOne({ _id: context.user.userID })).rootFolder,
         content: args.input.content,
-        geometries: args.input.geometries,
+        cache: args.input.cache,
         description: args.input.description,
         version: args.input.version,
         image: args.input.imageUrl,
@@ -83,7 +83,7 @@ const documentResolver = {
       });
       if (existDocument) {
         await FolderModel.updateOne(
-          { _id: existDocument.folder }, //modifico los documentsID de la carpeta
+          { _id: existDocument.folder }, // modifico los documentsID de la carpeta
           { $pull: { documentsID: existDocument._id } },
         );
         await UploadModel.deleteMany({ document: existDocument._id });
@@ -111,11 +111,11 @@ const documentResolver = {
       if (existDocument) {
         if (args.input.folder && args.input.folder != existDocument.folder) {
           await FolderModel.updateOne(
-            { _id: args.input.folder }, //modifico los documentsID de la carpeta
+            { _id: args.input.folder }, // modifico los documentsID de la carpeta
             { $push: { documentsID: existDocument._id } },
           );
           await FolderModel.updateOne(
-            { _id: existDocument.folder }, //modifico los documentsID de la carpeta donde estaba el documento
+            { _id: existDocument.folder }, // modifico los documentsID de la carpeta donde estaba el documento
             { $pull: { documentsID: existDocument._id } },
           );
         }
@@ -134,7 +134,7 @@ const documentResolver = {
           type: args.input.type || existDocument.type,
           folder: args.input.folder || existDocument.folder,
           content: args.input.content || existDocument.content,
-          geometries: args.input.geometries || existDocument.geometries,
+          cache: args.input.cache || existDocument.cache,
           description: args.input.description || existDocument.description,
           version: args.input.version || existDocument.version,
           image: image || existDocument.image,
