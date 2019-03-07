@@ -63,6 +63,8 @@ services:
         target: /google-application-credentials.json
       - /opt/api/node_modules/
       - /opt/api/.cache/
+    ports:
+      - 8002:8000
     command: >
       bash -c "cd /opt/api
       && npm install
