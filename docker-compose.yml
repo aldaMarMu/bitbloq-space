@@ -51,8 +51,11 @@ services:
       - JWT_SECRET=supersecretpassword
       - PORT=8000
       - GOOGLE_APPLICATION_CREDENTIALS=/google-application-credentials.json
+      - REDIS_DOMAIN_NAME=redis
+      - REDIS_PORT_NUMBER=6379
     depends_on:
       - mongodb
+      - redis
     volumes:
       - type: bind
         source: ./api
@@ -64,10 +67,14 @@ services:
       - /opt/api/.cache/
     ports:
       - 8002:8000
+      - 9229:9229
     command: >
       bash -c "cd /opt/api
       && npm install
-      && npm run dev"
+      && npm run dev-inspect"
+
+  redis:
+    image: redis:latest
 
   mongodb:
     image: mongo:latest
