@@ -1,14 +1,12 @@
-import { ApolloError, PubSub, withFilter } from 'apollo-server-koa';
-import { ObjectId } from 'bson';
+import { ApolloError, AuthenticationError, withFilter } from 'apollo-server-koa';
 import { DocumentModel } from '../models/document';
 import { ExerciseModel } from '../models/exercise';
 import { FolderModel } from '../models/folder';
 import { SubmissionModel } from '../models/submission';
 import { UploadModel } from '../models/upload';
 import { UserModel } from '../models/user';
+import { pubsub } from '../server';
 import uploadResolver from './upload';
-
-export const pubsub: PubSub = new PubSub();
 
 const DOCUMENT_UPDATED: string = 'DOCUMENT_UPDATED';
 
@@ -16,9 +14,13 @@ const documentResolver = {
   Subscription: {
     documentUpdated: {
       subscribe: withFilter(
+        // Filtra para devolver solo los documentos del usuario
         () => pubsub.asyncIterator([DOCUMENT_UPDATED]),
         (payload, variables, context) => {
-          return context.user.userID == payload.documentUpdated.user;
+          console.log('********************')
+          console.log(payload)
+          console.log('********************')
+          return context.user.userID === payload.documentUpdated.user;
         },
       ),
     },
@@ -32,8 +34,15 @@ const documentResolver = {
      * args: document information
      */
     createDocument: async (root: any, args: any, context: any) => {
+      if (args.input.folder) {
+        if (!(await FolderModel.findOne({_id: args.input.folder}))){
+          throw new ApolloError(
+            'Folder does not exist',
+            'FOLDER_NOT_FOUND',
+          );
+        }
+      }
       const documentNew = new DocumentModel({
-        id: ObjectId,
         user: context.user.userID,
         title: args.input.title,
         type: args.input.type,
@@ -107,7 +116,14 @@ const documentResolver = {
         _id: args.id,
         user: context.user.userID,
       });
-
+      if (args.input.folder) {
+        if (!(await FolderModel.findOne({_id: args.input.folder}))){
+          throw new ApolloError(
+            'Folder does not exist',
+            'FOLDER_NOT_FOUND',
+          );
+        }
+      }
       if (existDocument) {
         if (args.input.folder && args.input.folder != existDocument.folder) {
           await FolderModel.updateOne(
@@ -129,7 +145,7 @@ const documentResolver = {
         } else if (args.input.imageUrl) {
           image = args.input.imageUrl;
         }
-        const documentUpdate = {
+        const newArgs= {
           title: args.input.title || existDocument.title,
           type: args.input.type || existDocument.type,
           folder: args.input.folder || existDocument.folder,
@@ -138,14 +154,15 @@ const documentResolver = {
           description: args.input.description || existDocument.description,
           version: args.input.version || existDocument.version,
           image: image || existDocument.image,
-        };
-        const upDoc = await DocumentModel.findOneAndUpdate(
+        };     
+        const updatedDoc = await DocumentModel.findOneAndUpdate(
           { _id: existDocument._id },
-          { $set: documentUpdate },
+          { $set: newArgs},
           { new: true },
         );
-        pubsub.publish(DOCUMENT_UPDATED, { documentUpdated: upDoc });
-        return upDoc;
+        // revisar este publish
+        pubsub.publish(DOCUMENT_UPDATED, { documentUpdated: updatedDoc });
+        return updatedDoc;
       } else {
         return new ApolloError('Document does not exist', 'DOCUMENT_NOT_FOUND');
       }

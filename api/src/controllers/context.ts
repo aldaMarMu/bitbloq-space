@@ -1,8 +1,6 @@
-import {
-  AuthenticationError,
-} from 'apollo-server-koa';
-import { UserModel } from '../models/user';
+import { AuthenticationError } from 'apollo-server-koa';
 import { SubmissionModel } from '../models/submission';
+import { UserModel } from '../models/user';
 const jsonwebtoken = require('jsonwebtoken');
 
 const contextController = {
@@ -10,18 +8,18 @@ const contextController = {
     let token1: string;
     let justToken: string;
     if (context.headers) {
-      //authorization for queries and mutations
+      // authorization for queries and mutations
       token1 = context.headers.authorization || '';
       justToken = token1.split(' ')[1];
     } else if (context.authorization) {
-      //authorization for subscriptions
+      // authorization for subscriptions
       token1 = context.authorization || '';
       justToken = token1.split(' ')[1];
     } else {
       token1 = '';
       justToken = '';
     }
-    //comprobar si el token que recibe es el que está guardado en la base de datos
+    // comprobar si el token que recibe es el que está guardado en la base de datos
     // -> sesión única simultánea
     if (justToken) {
       let user;
@@ -29,6 +27,7 @@ const contextController = {
         user = await jsonwebtoken.verify(justToken, process.env.JWT_SECRET);
         return user;
       } catch (e) {
+        console.log('ENTRA EN UNDEFINED')
         return undefined;
       }
       // if (user){
@@ -44,7 +43,7 @@ const contextController = {
       //       'ANOTHER_OPEN_SESSION',
       //     );
       //   }
-      // } 
+      // }
     }
   },
   getDataInToken: async inToken => {

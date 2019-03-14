@@ -44,7 +44,6 @@ type Document {
 }
 
 input DocumentIn {
-  id: ObjectID
   user: ObjectID
   title: String
   type: String
