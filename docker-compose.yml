@@ -29,7 +29,6 @@ services:
       - /opt/bitbloq/packages/3d/node_modules/
       - /opt/bitbloq/packages/lib3d/node_modules/
       - /opt/bitbloq/packages/bloqs/node_modules/
-      - /opt/bitbloq/packages/hardware-designer/node_modules/
       - /opt/bitbloq/packages/junior/node_modules/
     command: >
       bash -c "cd /opt/frontend
@@ -39,7 +38,6 @@ services:
       && npm link ../bitbloq/packages/3d
       && npm link ../bitbloq/packages/lib3d
       && npm link ../bitbloq/packages/bloqs
-      && npm link ../bitbloq/packages/hardware-designer
       && npm link ../bitbloq/packages/junior
       && cd /opt/bitbloq
       && npm install
