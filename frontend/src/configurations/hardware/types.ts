@@ -8,7 +8,7 @@ export interface IArduinoCode {
 
 export interface IPortPin {
   name: string;
-  value: number | string;
+  value: string;
 }
 
 export type ConnectorType = string;
@@ -45,4 +45,42 @@ export interface IBoard {
   code: IArduinoCode
   image: IComponentImage;
   ports: IPort[];
+}
+
+export enum ConnectorPinMode {
+  INPUT = 'INPUT',
+  OUTPUT = 'OUTPUT',
+}
+
+export interface IConnectorPin {
+  name: string;
+  mode: ConnectorPinMode;
+  portPin: string;
+}
+
+
+export interface IConnector {
+  name: string;
+  type: string;
+  position: IConnectorPosition;
+  pins: IConnectorPin[];
+}
+
+export interface IComponentAction {
+  name: string;
+  parameters: string[];
+  code: string;
+  returns?: string;
+}
+
+export interface IComponent {
+  name: string;
+  instanceName: string;
+  extends: string;
+  code: IArduinoCode;
+  actions: IComponentAction[];
+  connectors:IConnector[];
+  image: IComponentImage;
+  onValue?: string;
+  offValue?: string;
 }
