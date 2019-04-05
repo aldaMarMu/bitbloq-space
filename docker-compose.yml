@@ -32,7 +32,7 @@ services:
       - /opt/bitbloq/packages/junior/node_modules/
     command: >
       bash -c "cd /opt/frontend
-      && rm -R /opt/frontend/node_modules/@bitbloq
+      && rm -Rf /opt/frontend/node_modules/@bitbloq
       && npm install
       && npm link ../bitbloq/packages/ui
       && npm link ../bitbloq/packages/3d
