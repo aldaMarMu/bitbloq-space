@@ -49,7 +49,8 @@ export interface IBoard {
 
 export enum ConnectorPinMode {
   INPUT = "INPUT",
-  OUTPUT = "OUTPUT"
+  OUTPUT = "OUTPUT",
+  I2C = "I2C"
 }
 
 export interface IConnectorPin {
@@ -82,4 +83,5 @@ export interface IComponent {
   image: IComponentImage;
   onValue?: string;
   offValue?: string;
+  values: {[name:string]:string | boolean | number};
 }

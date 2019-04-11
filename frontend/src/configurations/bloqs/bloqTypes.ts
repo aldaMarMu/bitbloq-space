@@ -84,6 +84,15 @@ export const bloqTypes: Array< Partial <IBloqType> > = [
       "action === 'pressed'": buttonPressedIcon,
       "action === 'released'": buttonReleasedIcon
     },
+    actions: [
+      {
+        name: "read",
+        parameters:{
+          pinVarName: "{{component}}Pin",
+          value: "{{action}}"
+        }
+      }
+    ],
     parameters: [
       {
         name: "component",
@@ -222,15 +231,30 @@ export const bloqTypes: Array< Partial <IBloqType> > = [
   },
   {
     category: BloqCategory.Action,
-    name: "SetSevenSegmentValue",
-    label: "bloq-set-sevent-segment",
-    components: ["SevenSegment"],
+    name: "SetSevenSegmentNumericValue",
+    label: "bloq-set-seven-segment-num",
+    components: ["ZumjuniorSevenSegment"],
     icon: sevenSegmentsIcon,
     parameters: [
       {
         name: "component",
         label: "bloq-parameter-component",
         type: BloqParameterType.SelectComponent
+      },
+      {
+        name: "value",
+        label: "bloq-parameter-value",
+        type: BloqParameterType.Number
+      },
+    ],
+    code: {},
+    actions: [
+      {
+        name: 'writeNumber',
+        parameters: {
+          pinVarName: '{{component}}i2c',
+          value: '{{value}}',
+        },
       },
     ]
   },
