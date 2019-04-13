@@ -21,38 +21,28 @@ services:
       - type: bind
         source: ./frontend
         target: /opt/frontend
+      - /opt/frontend/node_modules/
+      - /opt/frontend/public/
+      - /opt/frontend/.cache/
+      - /opt/bitbloq/node_modules/
+      - /opt/bitbloq/packages/ui/node_modules/
+      - /opt/bitbloq/packages/3d/node_modules/
+      - /opt/bitbloq/packages/lib3d/node_modules/
+      - /opt/bitbloq/packages/bloqs/node_modules/
+      - /opt/bitbloq/packages/junior/node_modules/
     command: >
-      bash -c "mkdir -p /opt/build/
+      bash -c "cd /opt/frontend
+      && rm -Rf /opt/frontend/node_modules/@bitbloq
+      && npm install
+      && npm link ../bitbloq/packages/ui
+      && npm link ../bitbloq/packages/3d
+      && npm link ../bitbloq/packages/lib3d
+      && npm link ../bitbloq/packages/bloqs
+      && npm link ../bitbloq/packages/junior
       && cd /opt/bitbloq
-      && cp -r `ls -A | grep -v 'node_modules' | grep -v 'packages'` /opt/build
-      && mkdir -p /opt/build/packages/3d
-      && cd /opt/bitbloq/packages/3d
-      && cp -r `ls -A | grep -v 'node_modules' | grep -v 'src'` /opt/build/packages/3d
-      && ln -sf /opt/bitbloq/packages/3d/src /opt/build/packages/3d/
-      && mkdir -p /opt/build/packages/bloqs
-      && cd /opt/bitbloq/packages/bloqs
-      && cp -r `ls -A | grep -v 'node_modules' | grep -v 'src'` /opt/build/packages/bloqs
-      && ln -sf /opt/bitbloq/packages/bloqs/src /opt/build/packages/bloqs/
-      && mkdir -p /opt/build/packages/junior
-      && cd /opt/bitbloq/packages/junior
-      && cp -r `ls -A | grep -v 'node_modules' | grep -v 'src'` /opt/build/packages/junior
-      && ln -sf /opt/bitbloq/packages/junior/src /opt/build/packages/junior/
-      && mkdir -p /opt/build/packages/lib3d
-      && cd /opt/bitbloq/packages/lib3d
-      && cp -r `ls -A | grep -v 'node_modules' | grep -v 'src'` /opt/build/packages/lib3d
-      && ln -sf /opt/bitbloq/packages/lib3d/src /opt/build/packages/lib3d/
-      && mkdir -p /opt/build/packages/ui
-      && cd /opt/bitbloq/packages/ui
-      && cp -r `ls -A | grep -v 'node_modules' | grep -v 'src'` /opt/build/packages/ui
-      && ln -sf /opt/bitbloq/packages/ui/src /opt/build/packages/ui/
-      && mkdir -p /opt/build/packages/frontend
-      && cd /opt/frontend
-      && cp -r `ls -A | grep -v 'node_modules' | grep -v 'src'` /opt/build/packages/frontend
-      && ln -sf /opt/frontend/src /opt/build/packages/frontend/
-      && cd /opt/build
       && npm install
       && npx lerna bootstrap
-      && cd /opt/build/packages/frontend
+      && cd /opt/frontend
       && npm run develop"
 
   api:
