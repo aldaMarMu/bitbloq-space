@@ -1,4 +1,4 @@
-import { IComponent, ConnectorPinMode } from "./types";
+import { IComponent, ConnectorPinMode } from "@bitbloq/bloqs";
 
 import SevenSegmentImage from "../../images/hardware/zumjunior-7segment.svg";
 import ButtonImage from "../../images/hardware/zumjunior-button.svg";
@@ -76,8 +76,8 @@ export const components: Partial<IComponent>[] = [
     name: "ZumjuniorButton",
     extends: "Button",
     values:{
-      pressed: true,
-      unPressed: false
+      pressed: "HIGH",
+      unPressed: "LOW"
     },
     instanceName: "bloq-button-instance-name",
     connectors: [
@@ -104,15 +104,13 @@ export const components: Partial<IComponent>[] = [
     }
   },
   {
-    name: "DoubleLed",
-    extends: "Led"
-  },
-  {
     name: "ZumjuniorDoubleLed",
-    extends: "DoubleLed",
-    onValue: "LOW",
-    offValue: "HIGH",
+    extends: "Led",
     instanceName: "bloq-led-instance-name",
+    values:{
+      on: "HIGH",
+      off: "LOW"
+    },
     connectors: [
       {
         name: "main",
