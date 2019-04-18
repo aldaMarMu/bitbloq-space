@@ -67,7 +67,7 @@ export const bloqTypes: Array< Partial <IBloqType> > = [
       },
       {
         name: "value",
-        label: "bloq-parameter-switch-value",
+        label: "bloq-parameter-value",
         type: BloqParameterType.Select,
         options: [
           {
@@ -130,13 +130,13 @@ export const bloqTypes: Array< Partial <IBloqType> > = [
     name: "OnSevenSegmentValue",
     label: "bloq-on-seven-segment",
     icon: sevenSegmentsIcon,
-    components: ["SevenSegment"],
+    components: ["ZumjuniorSevenSegment"],
     actions: [
       {
         name: "readNumber",
         parameters:{
           pinVarName: "{{component}}i2c",
-          value: "{{value}}"
+          // value: "{{value}}"
         }
       }
     ],
@@ -148,8 +148,8 @@ export const bloqTypes: Array< Partial <IBloqType> > = [
       },
       {
         name: "value",
-        label: "bloq-parameter-digit1",
-        type: BloqParameterType.Text
+        label: "bloq-parameter-value",
+        type: BloqParameterType.Number
       }
     ]
   },
@@ -291,7 +291,7 @@ export const bloqTypes: Array< Partial <IBloqType> > = [
       },
       {
         name: "value",
-        label: "bloq-parameter-value",
+        label: "bloq-inc-seven-value",
         type: BloqParameterType.Number
       },
     ],
@@ -320,7 +320,7 @@ export const bloqTypes: Array< Partial <IBloqType> > = [
       },
       {
         name: "value",
-        label: "bloq-parameter-value",
+        label: "bloq-inc-seven-value",
         type: BloqParameterType.Number
       },
     ],
@@ -364,13 +364,27 @@ export const bloqTypes: Array< Partial <IBloqType> > = [
     name: "WaitObstacle",
     label: "bloq-wait-obstacle",
     icon: obstacleIcon,
-    components: ["ZumjuniorSensors"],
+    components: ["ZumjuniorMultiSensor"],
+    actions: [
+      {
+        name: "readDistance",
+        parameters:{
+          pinVarName: "{{component}}i2c",
+        }
+      }
+    ],
     parameters: [
       {
         name: "component",
         label: "bloq-parameter-sensors",
         type: BloqParameterType.SelectComponent
       },
+      {
+        name: "value",
+        label: "bloq-parameter-value",
+        type: BloqParameterType.Hidden,
+        value: "<20",
+      }
     ]
   },
   {
@@ -378,13 +392,27 @@ export const bloqTypes: Array< Partial <IBloqType> > = [
     name: "WaitNoObstacle",
     label: "bloq-wait-no-obstacle",
     icon: noObstacleIcon,
-    components: ["ZumjuniorSensors"],
+    components: ["ZumjuniorMultiSensor"],
+    actions: [
+      {
+        name: "readDistance",
+        parameters:{
+          pinVarName: "{{component}}i2c",
+        }
+      }
+    ],
     parameters: [
       {
         name: "component",
         label: "bloq-parameter-sensors",
         type: BloqParameterType.SelectComponent
       },
+      {
+        name: "value",
+        label: "bloq-parameter-value",
+        type: BloqParameterType.Hidden,
+        value: ">20",
+      }
     ]
   },
 ];
