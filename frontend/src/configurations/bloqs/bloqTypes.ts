@@ -24,6 +24,17 @@ import sevenSegmentsIcon from "../../images/bloqs/7segments.svg";
 import obstacleIcon from "../../images/bloqs/obstacle.svg";
 import noObstacleIcon from "../../images/bloqs/no-obstacle.svg";
 import buzzerIcon from "../../images/bloqs/buzzer.svg";
+import sendAIcon from "../../images/bloqs/send-message-a.svg";
+import sendBIcon from "../../images/bloqs/send-message-b.svg";
+import sendCIcon from "../../images/bloqs/send-message-c.svg";
+import sendDIcon from "../../images/bloqs/send-message-d.svg";
+import sendEIcon from "../../images/bloqs/send-message-e.svg";
+import onAIcon from "../../images/bloqs/on-message-a.svg";
+import onBIcon from "../../images/bloqs/on-message-b.svg";
+import onCIcon from "../../images/bloqs/on-message-c.svg";
+import onDIcon from "../../images/bloqs/on-message-d.svg";
+import onEIcon from "../../images/bloqs/on-message-e.svg";
+
 import { IBloqType, BloqCategory, BloqParameterType } from "@bitbloq/bloqs";
 
 
@@ -97,6 +108,62 @@ export const bloqTypes: Array< Partial <IBloqType> > = [
       }
     ],
     code: {}
+  },
+  {
+    category: BloqCategory.Event,
+    name: "OnMessage",
+    label: "bloq-on-message",
+    iconSwitch: {
+      "value === 'messageA'": onAIcon,
+      "value === 'messageB'": onBIcon,
+      "value === 'messageC'": onCIcon,
+      "value === 'messageD'": onDIcon,
+      "value === 'messageE'": onEIcon,
+    },
+    code: {
+      globals: [
+      "bool ___messageA = false;",
+      "bool ___messageB = false;",
+      "bool ___messageC = false;",
+      "bool ___messageD = false;",
+      "bool ___messageE = false;"]
+    },
+    actions: [
+      {
+      name: "onMessage",
+      parameters: {
+        variable: "___{{value}}"},
+      }
+    ],
+    parameters: [
+      {
+        name: "value",
+        label: "bloq-message-value",
+        type: BloqParameterType.Select,
+        options: [
+          {
+            label: "A",
+            value: "messageA"
+          },
+          {
+            label: "B",
+            value: "messageB"
+          },
+          {
+            label: "C",
+            value: "messageC"
+          },
+          {
+            label: "D",
+            value: "messageD"
+          },
+          {
+            label: "E",
+            value: "messageE"
+          },
+        ]
+      },
+    ],
   },
   {
     category: BloqCategory.Event,
@@ -621,14 +688,71 @@ export const bloqTypes: Array< Partial <IBloqType> > = [
           value: '{{value}}',
         },
       },
-    ]
+    ],
+  },
+  {
+    category: BloqCategory.Action,
+    name: "sendMessageA",
+    label: "bloq-send-message",
+    iconSwitch: {
+      "value === 'messageA'": sendAIcon,
+      "value === 'messageB'": sendBIcon,
+      "value === 'messageC'": sendCIcon,
+      "value === 'messageD'": sendDIcon,
+      "value === 'messageE'": sendEIcon,
+    },
+    code: {
+      globals: ["bool ___messageA = false;",
+      "bool ___messageB = false;",
+      "bool ___messageC = false;",
+      "bool ___messageD = false;",
+      "bool ___messageE = false;"]
+    },
+    actions: [
+      {
+      name: "send",
+      parameters: {
+        code: "___{{value}} = true;"},
+      }
+    ],
+    parameters: [
+      {
+        name: "value",
+        label: "bloq-message-value",
+        type: BloqParameterType.Select,
+        options: [
+          {
+            label: "A",
+            value: "messageA"
+          },
+          {
+            label: "B",
+            value: "messageB"
+          },
+          {
+            label: "C",
+            value: "messageC"
+          },
+          {
+            label: "D",
+            value: "messageD"
+          },
+          {
+            label: "E",
+            value: "messageE"
+          },
+        ]
+      },
+    ],
+
   },
   {
     category: BloqCategory.Wait,
     name: "Wait1Second",
     label: "bloq-wait-1-second",
     icon: time1Icon,
-    code: {},
+    code: {
+    },
     actions: [
       {
       name: "wait",
