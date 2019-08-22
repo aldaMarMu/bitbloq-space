@@ -1,10 +1,16 @@
-import { ApolloError, AuthenticationError, withFilter } from 'apollo-server-koa';
-import { DocumentModel } from '../models/document';
+import {
+  ApolloError,
+  AuthenticationError,
+  withFilter,
+} from 'apollo-server-koa';
+import { DocumentModel, IDocument } from '../models/document';
 import { ExerciseModel } from '../models/exercise';
 import { FolderModel } from '../models/folder';
 import { SubmissionModel } from '../models/submission';
-import { UploadModel } from '../models/upload';
+import { IUpload, UploadModel } from '../models/upload';
 import { UserModel } from '../models/user';
+
+import { logger, loggerController } from '../controllers/logs';
 import { pubsub } from '../server';
 import uploadResolver from './upload';
 
@@ -32,14 +38,11 @@ const documentResolver = {
      */
     createDocument: async (root: any, args: any, context: any) => {
       if (args.input.folder) {
-        if (!(await FolderModel.findOne({_id: args.input.folder}))){
-          throw new ApolloError(
-            'Folder does not exist',
-            'FOLDER_NOT_FOUND',
-          );
+        if (!(await FolderModel.findOne({ _id: args.input.folder }))) {
+          throw new ApolloError('Folder does not exist', 'FOLDER_NOT_FOUND');
         }
       }
-      const documentNew = new DocumentModel({
+      const documentNew: IDocument = new DocumentModel({
         user: context.user.userID,
         title: args.input.title,
         type: args.input.type,
@@ -52,18 +55,26 @@ const documentResolver = {
         version: args.input.version,
         image: args.input.imageUrl,
       });
-      const newDocument = await DocumentModel.create(documentNew);
+      const newDocument: IDocument = await DocumentModel.create(documentNew);
       await FolderModel.updateOne(
         { _id: documentNew.folder },
         { $push: { documentsID: newDocument._id } },
         { new: true },
       );
+      loggerController.storeInfoLog(
+        'API',
+        'document',
+        'create',
+        args.input.type,
+        documentNew.user,
+        '',
+      );
       if (args.input.image) {
-        const imageUploaded = await uploadResolver.Mutation.singleUpload(
+        const imageUploaded: IUpload = await uploadResolver.Mutation.singleUpload(
           args.input.image,
           newDocument._id,
         );
-        const newDoc = await DocumentModel.findOneAndUpdate(
+        const newDoc: IDocument = await DocumentModel.findOneAndUpdate(
           { _id: documentNew._id },
           { $set: { image: imageUploaded.publicUrl } },
           { new: true },
@@ -83,11 +94,19 @@ const documentResolver = {
      * args: document ID
      */
     deleteDocument: async (root: any, args: any, context: any) => {
-      const existDocument = await DocumentModel.findOne({
+      const existDocument: IDocument = await DocumentModel.findOne({
         _id: args.id,
         user: context.user.userID,
       });
       if (existDocument) {
+        loggerController.storeInfoLog(
+          'API',
+          'document',
+          'delete',
+          existDocument.type,
+          existDocument.user,
+          '',
+        );
         await FolderModel.updateOne(
           { _id: existDocument.folder }, // modifico los documentsID de la carpeta
           { $pull: { documentsID: existDocument._id } },
@@ -103,26 +122,55 @@ const documentResolver = {
         );
       }
     },
+
     /**
-     * Update document: update existing document.
+     *  Update document Content: update content of existing document.
+     *  It updates document content with the new information provided.
+     *  args: id, content and cache
+     */
+    updateDocumentContent: async (root: any, args: any, context: any) => {
+      const existDocument: IDocument = await DocumentModel.findOne({
+        _id: args.id,
+        user: context.user.userID,
+      });
+      if (existDocument) {
+        const updatedDoc: IDocument = await DocumentModel.findOneAndUpdate(
+          { _id: existDocument._id },
+          {
+            $set: {
+              content: args.content || existDocument.content,
+              cache: args.cache || existDocument.cache,
+            },
+          },
+          { new: true },
+        );
+        pubsub.publish(DOCUMENT_UPDATED, { documentUpdated: updatedDoc });
+        return updatedDoc;
+      } else {
+        return new ApolloError('Document does not exist', 'DOCUMENT_NOT_FOUND');
+      }
+    },
+
+    /**
+     * Update document: update information of existing document.
      * It updates the document with the new information provided.
      * args: document ID, new document information.
      */
     updateDocument: async (root: any, args: any, context: any) => {
-      const existDocument = await DocumentModel.findOne({
+      const existDocument: IDocument = await DocumentModel.findOne({
         _id: args.id,
         user: context.user.userID,
       });
       if (args.input.folder) {
-        if (!(await FolderModel.findOne({_id: args.input.folder}))){
-          throw new ApolloError(
-            'Folder does not exist',
-            'FOLDER_NOT_FOUND',
-          );
+        if (!(await FolderModel.findOne({ _id: args.input.folder }))) {
+          throw new ApolloError('Folder does not exist', 'FOLDER_NOT_FOUND');
         }
       }
       if (existDocument) {
-        if (args.input.folder && args.input.folder != existDocument.folder) {
+        if (
+          args.input.folder &&
+          args.input.folder !== String(existDocument.folder)
+        ) {
           await FolderModel.updateOne(
             { _id: args.input.folder }, // modifico los documentsID de la carpeta
             { $push: { documentsID: existDocument._id } },
@@ -134,17 +182,23 @@ const documentResolver = {
         }
         let image: string;
         if (args.input.image) {
-          const imageUploaded = await uploadResolver.Mutation.singleUpload(
+          const imageUploaded: IUpload = await uploadResolver.Mutation.singleUpload(
             args.input.image,
             existDocument._id,
           );
           image = imageUploaded.publicUrl;
         } else if (args.input.imageUrl) {
           image = args.input.imageUrl;
-        }  
-        const updatedDoc = await DocumentModel.findOneAndUpdate(
+        }
+        if (args.input.content || args.input.cache) {
+          console.log(
+            'You should use Update document Content Mutation, USE_UPDATECONTENT_MUTATION',
+          );
+        }
+        const updatedDoc: IDocument = await DocumentModel.findOneAndUpdate(
           { _id: existDocument._id },
-          { $set: {
+          {
+            $set: {
               title: args.input.title || existDocument.title,
               type: args.input.type || existDocument.type,
               folder: args.input.folder || existDocument.folder,
@@ -153,15 +207,75 @@ const documentResolver = {
               description: args.input.description || existDocument.description,
               version: args.input.version || existDocument.version,
               image: image || existDocument.image,
-            }
+            },
           },
           { new: true },
+        );
+        loggerController.storeInfoLog(
+          'API',
+          'document',
+          'update',
+          existDocument.type,
+          existDocument.user,
+          '',
         );
         pubsub.publish(DOCUMENT_UPDATED, { documentUpdated: updatedDoc });
         return updatedDoc;
       } else {
         return new ApolloError('Document does not exist', 'DOCUMENT_NOT_FOUND');
       }
+    },
+
+    /**
+     * publish Document: only an admin user can publish a document.
+     * A public document is an example file. Once the document is public, every user can see it.
+     * args: document id, and public value.
+     */
+    publishDocument: async (root: any, args: any, context: any) => {
+      const docFound: IDocument = await DocumentModel.findOne({ _id: args.id });
+      if (!docFound) {
+        return new ApolloError('Document does not exist', 'DOCUMENT_NOT_FOUND');
+      }
+      return await DocumentModel.findOneAndUpdate(
+        { _id: docFound._id },
+        { $set: { public: args.public } },
+        { new: true },
+      );
+    },
+
+    /**
+     * open Document copy: when a user wants to edit an example document has to make a copy in his account.
+     * The example document has to be public.
+     * args: document ID
+     */
+    openDocumentCopy: async (root: any, args: any, context: any) => {
+      const docFound: IDocument = await DocumentModel.findOne({
+        _id: args.id,
+        public: true,
+      });
+      if (!docFound) {
+        return new ApolloError('Document does not exist', 'DOCUMENT_NOT_FOUND');
+      }
+      const docCopy: IDocument = new DocumentModel({
+        user: context.user.userID,
+        title: docFound.title,
+        type: docFound.type,
+        folder: (await UserModel.findOne({ _id: context.user.userID }))
+          .rootFolder,
+        content: docFound.content,
+        cache: docFound.cache,
+        description: docFound.description,
+        version: docFound.version,
+        image: docFound.image,
+      });
+      const newDoc: IDocument = await DocumentModel.create(docCopy);
+      await FolderModel.updateOne(
+        { _id: newDoc.folder },
+        { $push: { documentsID: newDoc._id } },
+        { new: true },
+      );
+      pubsub.publish(DOCUMENT_UPDATED, { documentUpdated: newDoc });
+      return newDoc;
     },
   },
   Query: {
@@ -177,13 +291,13 @@ const documentResolver = {
      * args: document ID.
      */
     document: async (root: any, args: any, context: any) => {
-      const existDocument = await DocumentModel.findOne({
+      const existDocument: IDocument = await DocumentModel.findOne({
         _id: args.id,
       });
       if (!existDocument) {
         throw new ApolloError('Document does not exist', 'DOCUMENT_NOT_FOUND');
       }
-      if (existDocument.user != context.user.userID) {
+      if (String(existDocument.user) !== context.user.userID) {
         throw new ApolloError(
           'This ID does not belong to one of your documents',
           'NOT_YOUR_DOCUMENT',
@@ -191,11 +305,28 @@ const documentResolver = {
       }
       return existDocument;
     },
+
+    /**
+     * open public document: returns the information of the public document ID provided in the arguments.
+     * args: public document ID.
+     */
+    openPublicDocument: async (root: any, args: any, context: any) => {
+      const existDocument: IDocument = await DocumentModel.findOne({
+        _id: args.id,
+        public: true,
+      });
+      if (!existDocument) {
+        throw new ApolloError('Document does not exist', 'DOCUMENT_NOT_FOUND');
+      }
+      return existDocument;
+    },
   },
 
   Document: {
-    exercises: async document => ExerciseModel.find({ document: document._id }),
-    images: async document => UploadModel.find({ document: document._id }),
+    exercises: async (document: IDocument) =>
+      ExerciseModel.find({ document: document._id }),
+    images: async (document: IDocument) =>
+      UploadModel.find({ document: document._id }),
   },
 };
 

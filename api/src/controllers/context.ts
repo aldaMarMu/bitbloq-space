@@ -1,7 +1,10 @@
-import { AuthenticationError } from 'apollo-server-koa';
+import { ApolloError, AuthenticationError } from 'apollo-server-koa';
 import { SubmissionModel } from '../models/submission';
 import { UserModel } from '../models/user';
+import { IUserInToken } from '../models/interfaces';
 const jsonwebtoken = require('jsonwebtoken');
+
+import { redisClient } from '../server';
 
 const contextController = {
   getMyUser: async context => {
@@ -22,27 +25,51 @@ const contextController = {
     // comprobar si el token que recibe es el que está guardado en la base de datos
     // -> sesión única simultánea
     if (justToken) {
-      let user;
+      let user: IUserInToken;
       try {
         user = await jsonwebtoken.verify(justToken, process.env.JWT_SECRET);
-        return user;
       } catch (e) {
         return undefined;
       }
-      // if (user){
-      //   // Si el token se ha resuelto y el token está guardado en las submissions
-      //   // o en los ususarios se devuelve la resolución, si no existe, es que hay otra sesión abierta
-      //   if (await UserModel.findOne({ authToken: justToken })){
-      //     return user;
-      //   } else if (await SubmissionModel.findOne({ submissionToken: justToken })) {
-      //     return user;
-      //   } else {
-      //     throw new ApolloError(
-      //       'Token not valid. More than one session opened',
-      //       'ANOTHER_OPEN_SESSION',
-      //     );
-      //   }
-      // }
+      // check if there is another open session
+      //console.log(user);
+      if (user.role === 'USER') {
+        const reply: string = await redisClient.getAsync(
+          'authToken-' + user.userID,
+        );
+        if (reply === justToken) {
+          return user;
+        } else {
+          throw new ApolloError(
+            'Token not valid. More than one session opened',
+            'ANOTHER_OPEN_SESSION',
+          );
+        }
+      } else if (user.role === 'ADMIN') {
+        const reply: string = await redisClient.getAsync(
+          'authToken-' + user.userID,
+        );
+        if (reply === justToken) {
+          return user;
+        } else {
+          throw new ApolloError(
+            'Token not valid. More than one session opened',
+            'ANOTHER_OPEN_SESSION',
+          );
+        }
+      } else if (user.submissionID) {
+        const reply: string = await redisClient.getAsync(
+          'subToken-' + user.submissionID,
+        );
+        if (reply === justToken) {
+          return user;
+        } else {
+          throw new ApolloError(
+            'Token not valid. More than one session opened',
+            'ANOTHER_OPEN_SESSION',
+          );
+        }
+      }
     }
   },
   getDataInToken: async inToken => {
@@ -53,6 +80,36 @@ const contextController = {
         throw new AuthenticationError('Token not value.');
       }
     }
+  },
+
+  generateLoginToken: async user => {
+    let token: string;
+    let role: string;
+    console.log(user);
+    if (user.admin) {
+      token = await jsonwebtoken.sign(
+        {
+          email: user.email,
+          userID: user._id,
+          role: 'ADMIN',
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '4h' },
+      );
+      role = 'admin';
+    } else {
+      token = await jsonwebtoken.sign(
+        {
+          email: user.email,
+          userID: user._id,
+          role: 'USER',
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '4h' },
+      );
+      role = 'user';
+    }
+    return { token, role };
   },
 };
 
