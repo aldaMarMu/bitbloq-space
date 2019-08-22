@@ -16,32 +16,32 @@ services:
     image: node:current
     volumes:
       - type: bind
+        source: ../bitbloq
+        target: /opt/bitbloq
+      - type: bind
         source: ./frontend
         target: /opt/frontend
-      - type: bind
-        source: ../bitbloq/packages/ui
-        target: /opt/ui
-      - type: bind
-        source: ../bitbloq/packages/3d
-        target: /opt/3d
-      - type: bind
-        source: ../bitbloq/packages/lib3d
-        target: /opt/lib3d
       - /opt/frontend/node_modules/
       - /opt/frontend/public/
       - /opt/frontend/.cache/
-      - /opt/ui/node_modules/
-      - /opt/3d/node_modules/
-      - /opt/lib3d/node_modules/
+      - /opt/bitbloq/node_modules/
+      - /opt/bitbloq/packages/ui/node_modules/
+      - /opt/bitbloq/packages/3d/node_modules/
+      - /opt/bitbloq/packages/lib3d/node_modules/
+      - /opt/bitbloq/packages/bloqs/node_modules/
+      - /opt/bitbloq/packages/junior/node_modules/
     command: >
       bash -c "cd /opt/frontend
+      && rm -Rf /opt/frontend/node_modules/@bitbloq
       && npm install
-      && npm link ../3d
-      && npm link ../lib3d
-      && npm link ../ui
-      && cd /opt/3d
-      && npm link ../lib3d
-      && npm link ../ui
+      && npm link ../bitbloq/packages/ui
+      && npm link ../bitbloq/packages/3d
+      && npm link ../bitbloq/packages/lib3d
+      && npm link ../bitbloq/packages/bloqs
+      && npm link ../bitbloq/packages/junior
+      && cd /opt/bitbloq
+      && npm install
+      && npx lerna bootstrap
       && cd /opt/frontend
       && npm run develop"
 
@@ -52,8 +52,11 @@ services:
       - JWT_SECRET=supersecretpassword
       - PORT=8000
       - GOOGLE_APPLICATION_CREDENTIALS=/google-application-credentials.json
+      - REDIS_DOMAIN_NAME=redis
+      - REDIS_PORT_NUMBER=6379
     depends_on:
       - mongodb
+      - redis
     volumes:
       - type: bind
         source: ./api
@@ -63,10 +66,16 @@ services:
         target: /google-application-credentials.json
       - /opt/api/node_modules/
       - /opt/api/.cache/
+    ports:
+      - 8002:8000
+      - 9229:9229
     command: >
       bash -c "cd /opt/api
       && npm install
-      && npm run dev"
+      && npm run dev-inspect"
+
+  redis:
+    image: redis:latest
 
   mongodb:
     image: mongo:latest
