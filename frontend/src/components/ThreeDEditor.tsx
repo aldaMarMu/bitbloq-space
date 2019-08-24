@@ -16,29 +16,29 @@ const getMenuOptions = (baseMenuOptions, t) => [
     id: "file",
     label: t("menu-file"),
     children: [
-      {
-        id: "new-document",
-        label: t("menu-new-document"),
-        icon: <Icon name="new-document" />
-      },
-      {
-        id: "open-document",
-        label: t("menu-open-document"),
-        icon: <Icon name="open-document" />
-      },
-      {
-        id: "change-name",
-        label: t("menu-change-name"),
-        icon: <Icon name="pencil" />
-      },
-      {
-        id: "duplicate-document",
-        label: t("menu-duplicate-document"),
-        icon: <Icon name="duplicate" />
-      },
-      {
-        divider: true
-      },
+      // {
+      //   id: "new-document",
+      //   label: t("menu-new-document"),
+      //   icon: <Icon name="new-document" />
+      // },
+      // {
+      //   id: "open-document",
+      //   label: t("menu-open-document"),
+      //   icon: <Icon name="open-document" />
+      // },
+      // {
+      //   id: "change-name",
+      //   label: t("menu-change-name"),
+      //   icon: <Icon name="pencil" />
+      // },
+      // {
+      //   id: "duplicate-document",
+      //   label: t("menu-duplicate-document"),
+      //   icon: <Icon name="duplicate" />
+      // },
+      // {
+      //   divider: true
+      // },
       {
         id: "import-stl",
         label: t("menu-import-stl"),
@@ -60,19 +60,19 @@ const getMenuOptions = (baseMenuOptions, t) => [
       {
         divider: true
       },
-      {
-        id: "change-language",
-        label: t("menu-change-language"),
-        icon: <Icon name="earth" />
-      },
-      {
-        divider: true
-      },
-      {
-        id: "delete-document",
-        label: t("menu-delete-document"),
-        icon: <Icon name="trash" />
-      }
+      // {
+      //   id: "change-language",
+      //   label: t("menu-change-language"),
+      //   icon: <Icon name="earth" />
+      // },
+      // {
+      //   divider: true
+      // },
+      // {
+      //   id: "delete-document",
+      //   label: t("menu-delete-document"),
+      //   icon: <Icon name="trash" />
+      // }
     ]
   },
   ...baseMenuOptions
@@ -92,6 +92,12 @@ class ThreeDEditor extends React.Component<EditorProps> {
 
     switch (option.id) {
       case "import-stl":
+        // is user is not logged (PlayGround)
+        const { isPlayground } = this.props;
+        if (isPlayground) {
+          this.setState({ showSTLError: "Debes estar registrado para poder importar archivos STL." });
+          return;
+        }
         this.openSTLInput.current && this.openSTLInput.current.click();
         return;
 
@@ -109,12 +115,12 @@ class ThreeDEditor extends React.Component<EditorProps> {
   };
 
   onSTLFileSelected = (file: File, uploadSTL) => {
-    const { isPlayground } = this.props;
+    // const { isPlayground } = this.props;
 
     if (file.size > maxSTLFileSize) {
       this.setState({
         showSTLError:
-          "El STL pesa más de 5MB, intenta reducir su tamaño he impórtalo de nuevo."
+          "El archivo STL ocupa más de 5MB, intenta reducir su tamaño e impórtalo de nuevo."
       });
       return;
     }
@@ -142,13 +148,14 @@ class ThreeDEditor extends React.Component<EditorProps> {
         return;
       }
 
-      if (isPlayground) {
-        this.threedRef.current.createObject(
-          "STLObject",
-          { blob: { uint8Data, filetype: file.type, newfile: true } },
-          file.name
-        );
-      } else {
+      // if (isPlayground) {
+      //   this.threedRef.current.createObject(
+      //     "STLObject",
+      //     { blob: { uint8Data, filetype: file.type, newfile: true } },
+      //     file.name
+      //   );
+      // } else {
+
         uploadSTL({ variables: { file } }).then(({ data }) => {
           this.threedRef.current.createObject(
             "STLObject",
@@ -156,7 +163,7 @@ class ThreeDEditor extends React.Component<EditorProps> {
             data.uploadSTLFile.filename
           );
         });
-      }
+      // }
     };
 
     reader.readAsArrayBuffer(file);
