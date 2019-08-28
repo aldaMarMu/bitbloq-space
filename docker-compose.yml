@@ -17,32 +17,32 @@ services:
     volumes:
       - type: bind
         source: ../bitbloq
-        target: /home/alda/Documentos/bitbloq3/install-bitbloq/opt/bitbloq
+        target: /opt/bitbloq
       - type: bind
         source: ./frontend
-        target: /home/alda/Documentos/bitbloq3/install-bitbloq/opt/frontend
-      - /home/alda/Documentos/bitbloq3/install-bitbloq/opt/frontend/node_modules/
-      - /home/alda/Documentos/bitbloq3/install-bitbloq/opt/frontend/public/
-      - /home/alda/Documentos/bitbloq3/install-bitbloq/opt/frontend/.cache/
-      - /home/alda/Documentos/bitbloq3/install-bitbloq/opt/bitbloq/node_modules/
-      - /home/alda/Documentos/bitbloq3/install-bitbloq/opt/bitbloq/packages/ui/node_modules/
-      - /home/alda/Documentos/bitbloq3/install-bitbloq/opt/bitbloq/packages/3d/node_modules/
-      - /home/alda/Documentos/bitbloq3/install-bitbloq/opt/bitbloq/packages/lib3d/node_modules/
-      - /home/alda/Documentos/bitbloq3/install-bitbloq/opt/bitbloq/packages/bloqs/node_modules/
-      - /home/alda/Documentos/bitbloq3/install-bitbloq/opt/bitbloq/packages/junior/node_modules/
+        target: /opt/frontend
+      - /opt/frontend/node_modules/
+      - /opt/frontend/public/
+      - /opt/frontend/.cache/
+      - /opt/bitbloq/node_modules/
+      - /opt/bitbloq/packages/ui/node_modules/
+      - /opt/bitbloq/packages/3d/node_modules/
+      - /opt/bitbloq/packages/lib3d/node_modules/
+      - /opt/bitbloq/packages/bloqs/node_modules/
+      - /opt/bitbloq/packages/junior/node_modules/
     command: >
-      bash -c "cd /home/alda/Documentos/bitbloq3/install-bitbloq/opt/frontend
-      && rm -Rf /home/alda/Documentos/bitbloq3/install-bitbloq/opt/frontend/node_modules/@bitbloq
+      bash -c "cd /opt/frontend
+      && rm -Rf /opt/frontend/node_modules/@bitbloq
       && npm install
       && npm link ../bitbloq/packages/ui
       && npm link ../bitbloq/packages/3d
       && npm link ../bitbloq/packages/lib3d
       && npm link ../bitbloq/packages/bloqs
       && npm link ../bitbloq/packages/junior
-      && cd /home/alda/Documentos/bitbloq3/install-bitbloq/opt/bitbloq
+      && cd /opt/bitbloq
       && npm install
       && npx lerna bootstrap
-      && cd /home/alda/Documentos/bitbloq3/install-bitbloq/opt/frontend
+      && cd /opt/frontend
       && npm run develop"
 
   api:
@@ -61,17 +61,17 @@ services:
     volumes:
       - type: bind
         source: ./api
-        target: /home/alda/Documentos/bitbloq3/install-bitbloq/opt/api
+        target: /opt/api
       - type: bind
         source: "${GOOGLE_APPLICATION_CREDENTIALS}"
         target: /google-application-credentials.json
-      - /home/alda/Documentos/bitbloq3/install-bitbloq/opt/api/node_modules/
-      - /home/alda/Documentos/bitbloq3/install-bitbloq/opt/api/.cache/
+      - /opt/api/node_modules/
+      - /opt/api/.cache/
     ports:
       - 8002:8000
       - 9229:9229
     command: >
-      bash -c "cd /home/alda/Documentos/bitbloq3/install-bitbloq/opt/api
+      bash -c "cd /opt/api
       && npm install
       && npm run dev-inspect"
 
